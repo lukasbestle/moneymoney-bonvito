@@ -63,12 +63,16 @@ function InitializeSession (protocol, bankCode, username, reserved, password)
     end
 
     -- other error, return full error message
-    return message
+    return string.format(
+      MM.localizeText("The web server %s responded with the error message:\n»%s«\nPlease try again later."),
+      "secure.bonvito.net",
+      message
+    )
   end
 
   -- ensure that we are indeed logged in
   if html:xpath("//*[@id='logout']/a"):length() < 1 then
-    return "Login failed"
+    return MM.localizeText("The server responded with an internal error. Please try again later.")
   end
 
   -- no error, success
