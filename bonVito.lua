@@ -37,6 +37,11 @@ WebBanking{
 
 local connection = Connection()
 
+-- define local functions
+local parseAmount
+
+-----------------------------------------------------------
+
 function SupportsBank (protocol, bankCode)
   return protocol == ProtocolWebBanking and bankCode == "bonVito"
 end
@@ -124,14 +129,14 @@ function RefreshAccount (account, since)
       table.insert(transactions, {
         name = children:get(3):text(),
         accountNumber = children:get(2):text(),
-        amount = ParseAmount(children:get(4):text()),
+        amount = parseAmount(children:get(4):text()),
         bookingDate = bookingDate
       })
     end
   )
 
   return {
-    balance = ParseAmount(
+    balance = parseAmount(
       html:xpath("//tr[@class='account-balance-top']/td[2]"):text()
     ),
     transactions = transactions
@@ -142,9 +147,11 @@ function EndSession ()
   connection:get(url .. "index.php/logout")
 end
 
+-----------------------------------------------------------
+
 -- Parses a string amount in the form "xxx,xx €" into a number
 -- Also works with different currencies
-function ParseAmount (amount)
+function parseAmount (amount)
   local euro, cent = amount:match("(%-?%d+),(%d%d)")
   return tonumber(euro .. "." .. cent)
 end
