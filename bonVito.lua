@@ -84,7 +84,7 @@ function ListAccounts (knownAccounts)
 
   local accounts = {}
   html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(
-    function (index, element)
+    function (_, element)
       -- we use the merchant ID as the account number
       -- (actual account number is not displayed);
       -- the merchant ID and currency can be extracted from the detail URL
@@ -116,7 +116,7 @@ function RefreshAccount (account, since)
 
   local transactions = {}
   html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(
-    function (index, element)
+    function (_, element)
       local children = element:children()
 
       -- extract the date
@@ -153,8 +153,8 @@ end
 
 -----------------------------------------------------------
 
--- Parses a string amount in the form "xxx,xx €" into a number
--- Also works with different currencies
+-- Parses a string amount in the form "xxx,xx €" into a number;
+-- also works with different currencies
 function parseAmount (amount)
   local euro, cent = amount:match("(%-?%d+),(%d%d)")
   return tonumber(euro .. "." .. cent)
