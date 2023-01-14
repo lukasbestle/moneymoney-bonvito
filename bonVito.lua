@@ -109,10 +109,10 @@ function ListAccounts (knownAccounts)
       local merchantId, currency = url:match("id/(%d+)/currency/(%u+)")
 
       table.insert(accounts, {
-        name = element:xpath("./td[1]"):text(),
         accountNumber = merchantId,
-        portfolio = false,
         currency = currency,
+        name = element:xpath("./td[1]"):text(),
+        portfolio = false,
         type = AccountTypeCreditCard
       })
     end
@@ -153,10 +153,10 @@ function RefreshAccount (account, since)
       end
 
       table.insert(transactions, {
-        name = children:get(3):text(),
         accountNumber = children:get(2):text(),
         amount = parseAmount(children:get(4):text()),
-        bookingDate = bookingDate
+        bookingDate = bookingDate,
+        name = children:get(3):text()
       })
     end
   )
