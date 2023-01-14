@@ -152,21 +152,31 @@ function RefreshAccount (account, since)
         return false
       end
 
+      local amount = parseAmount(children:get(4):text())
+
+      -- skip transactions that cannot be parsed
+      if type(amount) ~= "number" then
+        MM.printStatus("Could not parse amount '" .. children:get(4):text() .. "'")
+        return
+      end
+
       table.insert(transactions, {
         accountNumber = children:get(2):text(),
-        amount = parseAmount(children:get(4):text()),
+        amount = amount,
         bookingDate = bookingDate,
         name = children:get(3):text()
       })
     end
   )
 
-  return {
-    balance = parseAmount(
-      html:xpath("//tr[@class='account-balance-top']/td[2]"):text()
-    ),
-    transactions = transactions
-  }
+  local balanceString = html:xpath("//tr[@class='account-balance-top']/td[2]"):text()
+  local balance = parseAmount(balanceString)
+
+  if type(balance) ~= "number" then
+    return "Could not parse balance '" .. balanceString .. '"'
+  end
+
+  return {balance=balance, transactions=transactions}
 end
 
 ---**Performs the logout from the backend**
