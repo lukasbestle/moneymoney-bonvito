@@ -42,10 +42,23 @@ local parseAmount
 
 -----------------------------------------------------------
 
+---**Checks if this extension can request from a specified bank**
+---
+---@param protocol protocol Protocol of the bank gateway
+---@param bankCode string Bank code or service name
+---@return boolean | string `true` or the URL to the online banking entry page if the extension supports the bank, `false` otherwise
 function SupportsBank (protocol, bankCode)
   return protocol == ProtocolWebBanking and bankCode == "bonVito"
 end
 
+---**Performs the login to the backend**
+---
+---@param protocol protocol Protocol of the bank gateway
+---@param bankCode string Bank code or service name
+---@param username string
+---@param reserved string Empty, currently not in use
+---@param password string
+---@return LoginFailed | string | nil # Optional error message
 function InitializeSession (protocol, bankCode, username, reserved, password)
   local html = HTML(connection:get(url .. "index.php/login"))
 
@@ -79,10 +92,14 @@ function InitializeSession (protocol, bankCode, username, reserved, password)
   return nil
 end
 
+---**Returns a list of accounts that can be refreshed with this extension**
+---
+---@param knownAccounts Account[] List of accounts that are already known via FinTS/HBCI
+---@return NewAccount[] | string # List of accounts that can be requsted with web scraping or error message
 function ListAccounts (knownAccounts)
   local html = HTML(connection:get(url .. "discounts.php/vnkonto/paymentStatements"))
 
-  local accounts = {}
+  local accounts = {} --[=[@as NewAccount[]]=]
   html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(
     function (_, element)
       -- we use the merchant ID as the account number
@@ -104,6 +121,11 @@ function ListAccounts (knownAccounts)
   return accounts
 end
 
+---**Refreshes the balance and transaction of an account**
+---
+---@param account Account Account that is being refreshed
+---@param since timestamp | nil POSIX timestamp of the oldest transaction to return or `nil` for portfolios
+---@return AccountResults | string # Web scraping results or error message
 function RefreshAccount (account, since)
   -- dynamically construct the target URL from the account data
   local url = string.format(
@@ -114,7 +136,7 @@ function RefreshAccount (account, since)
 
   local html = HTML(connection:get(url))
 
-  local transactions = {}
+  local transactions = {} --[=[@as NewTransaction[]]=]
   html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(
     function (_, element)
       local children = element:children()
@@ -147,14 +169,22 @@ function RefreshAccount (account, since)
   }
 end
 
+---**Performs the logout from the backend**
+---
+---@return string? # Optional error message
 function EndSession ()
   connection:get(url .. "index.php/logout")
 end
 
 -----------------------------------------------------------
 
--- Parses a string amount in the form "xxx,xx €" into a number;
--- also works with different currencies
+---**Parses a string amount in the form "xxx,xx €" into a number**
+---
+---Values in different currencies are supported as only the numeric
+---part is parsed.
+---
+---@param amount string
+---@return number?
 function parseAmount (amount)
   local euro, cent = amount:match("(%-?%d+),(%d%d)")
   return tonumber(euro .. "." .. cent)
