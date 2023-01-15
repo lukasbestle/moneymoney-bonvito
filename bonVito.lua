@@ -26,7 +26,7 @@
 -- SOFTWARE.
 
 WebBanking {
-  version     = 1.00,
+  version     = 1.01,
   url         = "https://secure.bonvito.net/consumer/",
   services    = { "bonVito" },
   description = string.format(
