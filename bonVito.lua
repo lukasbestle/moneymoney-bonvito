@@ -25,15 +25,12 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-WebBanking {
-  version     = 1.01,
-  url         = "https://secure.bonvito.net/consumer/",
-  services    = { "bonVito" },
-  description = string.format(
-    MM.localizeText("Get balance and transactions for %s"),
-    "bonVito"
-  )
-}
+WebBanking({
+	version = 1.01,
+	url = "https://secure.bonvito.net/consumer/",
+	services = { "bonVito" },
+	description = string.format(MM.localizeText("Get balance and transactions for %s"), "bonVito"),
+})
 
 local connection = Connection()
 
@@ -48,7 +45,7 @@ local parseAmount
 ---@param bankCode string Bank code or service name
 ---@return boolean | string # `true` or the URL to the online banking entry page if the extension supports the bank, `false` otherwise
 function SupportsBank(protocol, bankCode)
-  return protocol == ProtocolWebBanking and bankCode == "bonVito"
+	return protocol == ProtocolWebBanking and bankCode == "bonVito"
 end
 
 ---**Performs the login to the backend**
@@ -60,36 +57,36 @@ end
 ---@param password string
 ---@return LoginFailed | string | nil # Optional error message
 function InitializeSession(protocol, bankCode, username, reserved, password)
-  local html = HTML(connection:get(url .. "index.php/login"))
+	local html = HTML(connection:get(url .. "index.php/login"))
 
-  html:xpath("//input[@name='signin[login]']"):attr("value", username)
-  html:xpath("//input[@name='signin[password]']"):attr("value", password)
-  html = HTML(connection:request(html:xpath("//input[@name='commit']"):click()))
+	html:xpath("//input[@name='signin[login]']"):attr("value", username)
+	html:xpath("//input[@name='signin[password]']"):attr("value", password)
+	html = HTML(connection:request(html:xpath("//input[@name='commit']"):click()))
 
-  local error = html:xpath("//*[@id='error-info']|//*[@class='error_list']")
-  if error:length() > 0 then
-    local message = error:get(1):text()
+	local error = html:xpath("//*[@id='error-info']|//*[@class='error_list']")
+	if error:length() > 0 then
+		local message = error:get(1):text()
 
-    -- invalid credentials
-    if message:find("falsch eingegeben") then
-      return LoginFailed
-    end
+		-- invalid credentials
+		if message:find("falsch eingegeben") then
+			return LoginFailed
+		end
 
-    -- other error, return full error message
-    return string.format(
-      MM.localizeText("The web server %s responded with the error message:\n»%s«\nPlease try again later."),
-      "secure.bonvito.net",
-      message
-    )
-  end
+		-- other error, return full error message
+		return string.format(
+			MM.localizeText("The web server %s responded with the error message:\n»%s«\nPlease try again later."),
+			"secure.bonvito.net",
+			message
+		)
+	end
 
-  -- ensure that we are indeed logged in
-  if html:xpath("//*[@id='logout']/a"):length() < 1 then
-    return MM.localizeText("The server responded with an internal error. Please try again later.")
-  end
+	-- ensure that we are indeed logged in
+	if html:xpath("//*[@id='logout']/a"):length() < 1 then
+		return MM.localizeText("The server responded with an internal error. Please try again later.")
+	end
 
-  -- no error, success
-  return nil
+	-- no error, success
+	return nil
 end
 
 ---**Returns a list of accounts that can be refreshed with this extension**
@@ -97,28 +94,26 @@ end
 ---@param knownAccounts Account[] List of accounts that are already known via FinTS/HBCI
 ---@return NewAccount[] | string # List of accounts that can be requsted with web scraping or error message
 function ListAccounts(knownAccounts)
-  local html = HTML(connection:get(url .. "discounts.php/vnkonto/paymentStatements"))
+	local html = HTML(connection:get(url .. "discounts.php/vnkonto/paymentStatements"))
 
-  local accounts = {} --[=[@as NewAccount[]]=]
-  html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(
-    function(_, element)
-      -- we use the merchant ID as the account number
-      -- (actual account number is not displayed);
-      -- the merchant ID and currency can be extracted from the detail URL
-      local url = element:xpath("./td[4]/a"):attr("href")
-      local merchantId, currency = url:match("id/(%d+)/currency/(%u+)")
+	local accounts = {} --[=[@as NewAccount[]]=]
+	html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(function(_, element)
+		-- we use the merchant ID as the account number
+		-- (actual account number is not displayed);
+		-- the merchant ID and currency can be extracted from the detail URL
+		local url = element:xpath("./td[4]/a"):attr("href")
+		local merchantId, currency = url:match("id/(%d+)/currency/(%u+)")
 
-      table.insert(accounts, {
-        accountNumber = merchantId,
-        currency = currency,
-        name = element:xpath("./td[1]"):text(),
-        portfolio = false,
-        type = AccountTypeCreditCard
-      })
-    end
-  )
+		table.insert(accounts, {
+			accountNumber = merchantId,
+			currency = currency,
+			name = element:xpath("./td[1]"):text(),
+			portfolio = false,
+			type = AccountTypeCreditCard,
+		})
+	end)
 
-  return accounts
+	return accounts
 end
 
 ---**Refreshes the balance and transaction of an account**
@@ -127,63 +122,61 @@ end
 ---@param since timestamp | nil POSIX timestamp of the oldest transaction to return or `nil` for portfolios
 ---@return AccountResults | string # Web scraping results or error message
 function RefreshAccount(account, since)
-  -- dynamically construct the target URL from the account data
-  local url = string.format(
-    url .. "discounts.php/vnkonto/paymentStatementsDetails/id/%s/currency/%s",
-    account.accountNumber,
-    account.currency
-  )
+	-- dynamically construct the target URL from the account data
+	local url = string.format(
+		url .. "discounts.php/vnkonto/paymentStatementsDetails/id/%s/currency/%s",
+		account.accountNumber,
+		account.currency
+	)
 
-  local html = HTML(connection:get(url))
+	local html = HTML(connection:get(url))
 
-  local transactions = {} --[=[@as NewTransaction[]]=]
-  html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(
-    function(_, element)
-      local children = element:children()
+	local transactions = {} --[=[@as NewTransaction[]]=]
+	html:xpath("//table[@id='paymentStatements']/tbody/tr"):each(function(_, element)
+		local children = element:children()
 
-      -- extract the date
-      local datePattern = "(%d%d)%.(%d%d)%.(%d%d)"
-      local day, month, year = children:get(1):text():match(datePattern)
-      local bookingDate = os.time { day = day, month = month, year = "20" .. year }
+		-- extract the date
+		local datePattern = "(%d%d)%.(%d%d)%.(%d%d)"
+		local day, month, year = children:get(1):text():match(datePattern)
+		local bookingDate = os.time({ day = day, month = month, year = "20" .. year })
 
-      -- for better performance, stop after reaching past the since date
-      -- even though the HTML response already contains all transactions
-      if bookingDate < since then
-        return false
-      end
+		-- for better performance, stop after reaching past the since date
+		-- even though the HTML response already contains all transactions
+		if bookingDate < since then
+			return false
+		end
 
-      local amount = parseAmount(children:get(4):text())
+		local amount = parseAmount(children:get(4):text())
 
-      -- skip transactions that cannot be parsed
-      if type(amount) ~= "number" then
-        MM.printStatus("Could not parse amount '" .. children:get(4):text() .. "'")
-        return
-      end
+		-- skip transactions that cannot be parsed
+		if type(amount) ~= "number" then
+			MM.printStatus("Could not parse amount '" .. children:get(4):text() .. "'")
+			return
+		end
 
-      table.insert(transactions, {
-        accountNumber = children:get(2):text(),
-        amount = amount,
-        bookingDate = bookingDate,
-        name = children:get(3):text()
-      })
-    end
-  )
+		table.insert(transactions, {
+			accountNumber = children:get(2):text(),
+			amount = amount,
+			bookingDate = bookingDate,
+			name = children:get(3):text(),
+		})
+	end)
 
-  local balanceString = html:xpath("//tr[@class='account-balance-top']/td[2]"):text()
-  local balance = parseAmount(balanceString)
+	local balanceString = html:xpath("//tr[@class='account-balance-top']/td[2]"):text()
+	local balance = parseAmount(balanceString)
 
-  if type(balance) ~= "number" then
-    return "Could not parse balance '" .. balanceString .. '"'
-  end
+	if type(balance) ~= "number" then
+		return "Could not parse balance '" .. balanceString .. '"'
+	end
 
-  return { balance = balance, transactions = transactions }
+	return { balance = balance, transactions = transactions }
 end
 
 ---**Performs the logout from the backend**
 ---
 ---@return string? error Optional error message
 function EndSession()
-  connection:get(url .. "index.php/logout")
+	connection:get(url .. "index.php/logout")
 end
 
 -----------------------------------------------------------
@@ -196,6 +189,6 @@ end
 ---@param amount string
 ---@return number?
 function parseAmount(amount)
-  local euro, cent = amount:match("(%-?%d+),(%d%d)")
-  return tonumber(euro .. "." .. cent)
+	local euro, cent = amount:match("(%-?%d+),(%d%d)")
+	return tonumber(euro .. "." .. cent)
 end
