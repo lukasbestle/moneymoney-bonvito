@@ -35,7 +35,7 @@ WebBanking({
 local connection = Connection()
 
 -- define local functions
-local parseAmount
+local localizeText, parseAmount
 
 -----------------------------------------------------------
 
@@ -150,7 +150,12 @@ function RefreshAccount(account, since)
 
 		-- skip transactions that cannot be parsed
 		if type(amount) ~= "number" then
-			MM.printStatus("Could not parse amount '" .. children:get(4):text() .. "'")
+			MM.printStatus(
+				localizeText(
+					'Could not parse amount "' .. children:get(4):text() .. '"',
+					'Konnte den Betrag "' .. children:get(4):text() .. '" nicht verarbeiten'
+				)
+			)
 			return
 		end
 
@@ -166,7 +171,10 @@ function RefreshAccount(account, since)
 	local balance = parseAmount(balanceString)
 
 	if type(balance) ~= "number" then
-		return "Could not parse balance '" .. balanceString .. '"'
+		return localizeText(
+			'Could not parse balance "' .. balanceString .. '"',
+			'Konnte den Saldo "' .. balanceString .. '" nicht verarbeiten'
+		)
 	end
 
 	return { balance = balance, transactions = transactions }
@@ -180,6 +188,14 @@ function EndSession()
 end
 
 -----------------------------------------------------------
+
+---Returns the string in the current UI language
+---
+---@param en string English text
+---@param de string German text
+function localizeText(en, de)
+	return MM.language == "de" and de or en
+end
 
 ---**Parses a string amount in the form "xxx,xx €" into a number**
 ---
