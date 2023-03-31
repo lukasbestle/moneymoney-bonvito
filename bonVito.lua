@@ -33,6 +33,7 @@ WebBanking({
 })
 
 local connection = Connection()
+connection.language = "de-de" -- force German responses to get the correct date and currency formats
 
 -- define local functions
 local localizeText, parseAmount
